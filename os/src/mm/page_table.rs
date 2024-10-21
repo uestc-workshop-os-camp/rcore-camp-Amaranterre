@@ -140,7 +140,7 @@ impl PageTable {
         let pte = self.find_pte(vpn).unwrap();
         assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
 
-        println!("DEBUG: PageTable.unmap: empty the vp: {}", vpn.0);
+        // println!("DEBUG: PageTable.unmap: empty the vp: {}", vpn.0);
         *pte = PageTableEntry::empty();
     }
     /// get the page table entry from the virtual page number

@@ -270,6 +270,11 @@ impl MemorySet {
         // println!("DEBUG in task::MemorySet.mmap");
         let st_page = start_va.floor();
         let ed_page = end_va.ceil();
+        // the start virtual address is not aligned
+        if VirtAddr::from(st_page) != start_va {
+            return -1;
+        }
+
         for vpn in VPNRange::new(st_page, ed_page) {
             // println!("DEBUG in MemorySet::mmap: find pte for vpn: {}", vpn.0);
             let result = self.page_table.find_pte(vpn);
