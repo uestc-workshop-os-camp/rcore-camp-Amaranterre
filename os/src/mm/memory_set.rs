@@ -11,6 +11,8 @@ use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+#[allow(unused_imports)]
+use riscv::addr::page;
 use core::arch::asm;
 use lazy_static::*;
 use riscv::register::satp;
@@ -262,6 +264,68 @@ impl MemorySet {
             false
         }
     }
+
+    /// mmap from start_va to end_va
+    pub fn mmap(&mut self, start_va: VirtAddr, end_va: VirtAddr, permission: MapPermission) -> isize {
+        // println!("DEBUG in task::MemorySet.mmap");
+        let st_page = start_va.floor();
+        let ed_page = end_va.ceil();
+        for vpn in VPNRange::new(st_page, ed_page) {
+            // println!("DEBUG in MemorySet::mmap: find pte for vpn: {}", vpn.0);
+            let result = self.page_table.find_pte(vpn);
+            
+            // the page we want to map has been used, can't mmap!
+            match result {
+                Some(pte) => {
+                    if pte.is_valid() {
+                        return -1;
+                    }
+                },
+                None => ()
+            }
+
+        }
+
+
+        // println!("DEBUG: MemorySet.mmap, start_va: {}, end_va: {} ", start_va.0, end_va.0);
+        let map_area = 
+            MapArea::new(start_va, end_va, MapType::Framed, permission);
+
+        // println!("DEBUG: MemorySet.mmap, vp range of new map_area");
+        // for vpn in map_area.vpn_range {
+        //     println!("DEBUG: MemorySet.mmap, vpn: {}", vpn.0);
+        // }
+
+        self.push(map_area, None);
+        0
+    }
+
+    /// munmap from start_va to end_va
+    pub fn munmap(&mut self, start_va: VirtAddr, end_va: VirtAddr) -> isize {
+        let st_page = start_va.floor();
+        let ed_page = end_va.ceil();
+        for vpn in VPNRange::new(st_page, ed_page) {
+            // println!("DEBUG in MemorySet::munmap: find pte for vpn: {}", vpn.0);
+            let result = self.page_table.find_pte(vpn);
+            // the page we want to map has been used, can't mmap!
+
+            match result {
+                Some(pte) => {
+                    if !pte.is_valid() {
+                        return -1;
+                    }
+                }
+                None => {
+                    return -1;
+                }
+            }
+            
+            self.page_table.unmap(vpn);
+        }
+        
+        0
+    }
+
 }
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
@@ -300,6 +364,7 @@ impl MapArea {
             }
         }
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
+        // println!("DEBUG in MapArea.mmap: befor page_table.map, vpn: {}", vpn.0);
         page_table.map(vpn, ppn, pte_flags);
     }
     #[allow(unused)]

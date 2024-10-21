@@ -99,6 +99,7 @@ impl PageTable {
                 break;
             }
             if !pte.is_valid() {
+                // println!("DEBUG in find_pte_create: create a new pte, i: {}", i);
                 let frame = frame_alloc().unwrap();
                 *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
                 self.frames.push(frame);
@@ -108,7 +109,7 @@ impl PageTable {
         result
     }
     /// Find PageTableEntry by VirtPageNum
-    fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
+    pub fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
@@ -128,6 +129,7 @@ impl PageTable {
     /// set the map between virtual page number and physical page number
     #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
+        // println!("DEBUG in PageTable.map: vpn: {}, ppn: {}", vpn.0, ppn.0);
         let pte = self.find_pte_create(vpn).unwrap();
         assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
@@ -137,6 +139,8 @@ impl PageTable {
     pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = self.find_pte(vpn).unwrap();
         assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
+
+        println!("DEBUG: PageTable.unmap: empty the vp: {}", vpn.0);
         *pte = PageTableEntry::empty();
     }
     /// get the page table entry from the virtual page number

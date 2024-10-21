@@ -1,4 +1,7 @@
 //! Types related to task management
+#[allow(unused_imports)]
+use core::iter::Map;
+
 use super::TaskContext;
 use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{
@@ -96,6 +99,40 @@ impl TaskControlBlock {
             None
         }
     }
+
+    /// mmap from start to (start + len) with permission port
+    pub fn mmap(&mut self, start: usize, len: usize, port: usize ) -> isize {
+        // println!("DEBUG in task::TaskControlBlock.mmap");
+        // illegal or meaningless port
+        if (port & ((1 << 3) -1))  == 0 || (port & !((1 << 3) -1))  != 0 || len == 0{
+            return -1;
+        }
+        let perm = get_mmap_permission(port);
+        
+        self.memory_set
+            .mmap(VirtAddr(start), VirtAddr(start + len), perm)
+    }
+
+    /// munmap from start to (start + len) with permission port
+    pub fn munmap(&mut self, start: usize, len: usize) -> isize {
+
+        self.memory_set
+            .munmap(VirtAddr(start), VirtAddr(start + len))
+    }
+}
+
+fn get_mmap_permission(port: usize) -> MapPermission {
+    let mut perm = MapPermission::U;
+    if port & (1 << 0) != 0 {
+        perm |= MapPermission::R;
+    } 
+    if port & (1 << 1) != 0 {
+        perm |= MapPermission::W;
+    }
+    if port & (1 << 2) != 0 {
+        perm |= MapPermission::X;
+    }
+    perm
 }
 
 #[derive(Copy, Clone, PartialEq)]
