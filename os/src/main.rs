@@ -102,9 +102,13 @@ pub fn rust_main() -> ! {
     mm::init();
     println!("[kernel] back to world!");
     mm::remap_test();
+    // println!("DEBUG in main.rs: start `trap::init()`");
     trap::init();
+    // println!("DEBUG in main.rs: start `trap::enable_timer_interrupt()`");
     trap::enable_timer_interrupt();
+    // println!("DEBUG in main.rs:  start `timer::set_next_trigger()`");
     timer::set_next_trigger();
+    // println!("DEBUG in main.rs:  start `task::run_first_task`");
     task::run_first_task();
     panic!("Unreachable in rust_main!");
 }

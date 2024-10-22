@@ -2,10 +2,10 @@
 #[allow(unused_imports)]
 use core::iter::Map;
 
-use super::TaskContext;
+use super::{TaskContext, TaskInfo};
 use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{
-    kernel_stack_position, MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE,
+    kernel_stack_position, MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE
 };
 use crate::trap::{trap_handler, TrapContext};
 
@@ -31,6 +31,9 @@ pub struct TaskControlBlock {
 
     /// Program break
     pub program_brk: usize,
+
+    /// Infomation about the task
+    pub task_info: TaskInfo,
 }
 
 impl TaskControlBlock {
@@ -46,6 +49,7 @@ impl TaskControlBlock {
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+        // println!("for app:{}, user_sp:{}, entry_poiny:{}", app_id, user_sp, entry_point);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT_BASE).into())
             .unwrap()
@@ -66,6 +70,7 @@ impl TaskControlBlock {
             base_size: user_sp,
             heap_bottom: user_sp,
             program_brk: user_sp,
+            task_info: TaskInfo::init(),
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.get_trap_cx();
@@ -118,6 +123,14 @@ impl TaskControlBlock {
 
         self.memory_set
             .munmap(VirtAddr(start), VirtAddr(start + len))
+    }
+
+    /// get the physical page of the virtual address(parameter) in form of u8 array
+    pub fn get_physical_page(&mut self, va: usize) -> &'static mut [u8] {
+        let pte = self.memory_set
+                                      .translate(VirtAddr(va).floor()).unwrap();
+        let ppn = pte.ppn();
+        ppn.get_bytes_array()
     }
 }
 

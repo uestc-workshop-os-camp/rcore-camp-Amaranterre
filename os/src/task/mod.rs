@@ -19,9 +19,6 @@ use crate::loader::{get_app_data, get_num_app};
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::vec::Vec;
-use crate::config::MAX_APP_NUM;
-use crate::loader::{get_num_app, init_app_cx};
-use crate::sync::UPSafeCell;
 // use crate::syscall;
 // use crate::timer::get_time;
 use lazy_static::*;
@@ -64,6 +61,7 @@ lazy_static! {
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
             tasks.push(TaskControlBlock::new(get_app_data(i), i));
+            
         }
         TaskManager {
             num_app,
@@ -75,6 +73,7 @@ lazy_static! {
             },
         }
     };
+    
 }
 
 impl TaskManager {
@@ -92,6 +91,7 @@ impl TaskManager {
         // before this, we should drop local variables that must be dropped manually
         unsafe {
             __switch(&mut _unused as *mut _, next_task_cx_ptr);
+            // __switch(next_task_cx_ptr, next_task_cx_ptr);
         }
         panic!("unreachable in run_first_task!");
     }
@@ -153,6 +153,11 @@ impl TaskManager {
         inner.tasks[cur].munmap(_start, _len)
     }
 
+    // pub fn translate_to_pa(&self, _va -> usize) -> usize{
+    //     let mut inner = self.inner.exclusive_access();
+    //     let cur = inner.current_task;
+    //     inner.tasks[cur].translate_to_pa(_va)
+    // }
     /// Switch current `Running` task to the task we have found,
     /// or there is no `Ready` task and we can exit with all applications completed
     fn run_next_task(&self) {
@@ -186,6 +191,13 @@ impl TaskManager {
         let inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].task_info
+    }
+
+    /// get physical page of current task's virtual page address
+    pub fn get_current_pp_with_va(&self, va: usize) ->  &'static mut [u8] {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_physical_page(va)
     }
 }
 
@@ -246,4 +258,9 @@ pub fn current_task_mmap(start: usize, len: usize, port: usize ) -> isize{
 /// munmap current task through TASK_MANAGER
 pub fn current_task_munmap(start: usize, len: usize)   -> isize{
     TASK_MANAGER.current_task_munmap(start,len)
+}
+
+/// get physical page of current virtual address
+pub fn current_pp_with_va(va: usize) -> &'static mut [u8]{
+    TASK_MANAGER.get_current_pp_with_va(va)
 }
