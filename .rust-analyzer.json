@@ -1,0 +1,12 @@
+{
+    "cargo": {
+        "loadOutDirsFromCheck": false,
+        "allFeatures": true
+    },
+	"files": {
+    	"excludeDirs": [
+      		"~/.cargo"
+    	]
+  	}
+}
+

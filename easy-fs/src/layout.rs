@@ -6,7 +6,7 @@ use core::fmt::{Debug, Formatter, Result};
 /// Magic number for sanity check
 const EFS_MAGIC: u32 = 0x3b800001;
 /// The max number of direct inodes
-const INODE_DIRECT_COUNT: usize = 28;
+const INODE_DIRECT_COUNT: usize = 27;
 /// The max length of inode name
 const NAME_LENGTH_LIMIT: usize = 27;
 /// The max number of indirect1 inodes
@@ -85,6 +85,7 @@ pub struct DiskInode {
     pub direct: [u32; INODE_DIRECT_COUNT],
     pub indirect1: u32,
     pub indirect2: u32,
+    pub ref_count: u32,
     type_: DiskInodeType,
 }
 
@@ -96,6 +97,7 @@ impl DiskInode {
         self.direct.iter_mut().for_each(|v| *v = 0);
         self.indirect1 = 0;
         self.indirect2 = 0;
+        self.ref_count = 0;
         self.type_ = type_;
     }
     /// Whether this inode is a directory
@@ -387,6 +389,19 @@ impl DiskInode {
         }
         write_size
     }
+    /// add the ref count of the inode by 1 
+    pub fn ref_increase(&mut self) {
+        self.ref_count += 1;
+    }
+    /// decrease the ref count of the inode by 1 
+    pub fn ref_decrease(&mut self) {
+        assert!(self.ref_count >= 1);
+        self.ref_count -= 1;
+    }
+    /// if ref_count of the inode = 0, then it should be cleared
+    pub fn should_delete(&self) -> bool {
+        self.ref_count == 0
+    }
 }
 /// A directory entry
 #[repr(C)]
@@ -405,7 +420,7 @@ impl DirEntry {
             inode_id: 0,
         }
     }
-    /// Crate a directory entry from name and inode number
+    /// Create a directory entry from name and inode number
     pub fn new(name: &str, inode_id: u32) -> Self {
         let mut bytes = [0u8; NAME_LENGTH_LIMIT + 1];
         bytes[..name.len()].copy_from_slice(name.as_bytes());
