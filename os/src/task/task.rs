@@ -230,14 +230,17 @@ impl TaskControlBlock {
         parent_inner.children.push(task_control_block.clone());
         // modify kernel_sp in trap_cx
         // **** access child PCB exclusively
-        let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
-        *trap_cx = TrapContext::app_init_context(
+        let child_task_inner = task_control_block.inner_exclusive_access();
+        // initialize trap_cx
+        let trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
-            kernel_stack_top,
+            self.kernel_stack.get_top(),
             trap_handler as usize,
         );
+        *child_task_inner.get_trap_cx() = trap_cx;
+        drop(child_task_inner);
         // return
         task_control_block
         // **** release child PCB
@@ -259,17 +262,15 @@ impl TaskControlBlock {
         inner.memory_set = memory_set;
         // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
-        // initialize base_size
-        inner.base_size = user_sp;
         // initialize trap_cx
-        let trap_cx = inner.get_trap_cx();
-        *trap_cx = TrapContext::app_init_context(
+        let trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );
+        *inner.get_trap_cx() = trap_cx;
         // **** release current PCB
     }
 
