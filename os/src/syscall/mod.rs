@@ -18,6 +18,9 @@ const SYSCALL_LINKAT: usize = 37;
 const SYSCALL_OPEN: usize = 56;
 /// close syscall
 const SYSCALL_CLOSE: usize = 57;
+use crate::task::{TaskInfoToReturn, current_task_syscalled};
+
+
 /// read syscall
 const SYSCALL_READ: usize = 63;
 /// write syscall
@@ -61,6 +64,7 @@ use crate::fs::Stat;
 
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 4]) -> isize {
+    current_task_syscalled(syscall_id);
     match syscall_id {
         SYSCALL_OPEN => sys_open(args[1] as *const u8, args[2] as u32),
         SYSCALL_CLOSE => sys_close(args[0]),
@@ -76,7 +80,7 @@ pub fn syscall(syscall_id: usize, args: [usize; 4]) -> isize {
         SYSCALL_EXEC => sys_exec(args[0] as *const u8),
         SYSCALL_WAITPID => sys_waitpid(args[0] as isize, args[1] as *mut i32),
         SYSCALL_GET_TIME => sys_get_time(args[0] as *mut TimeVal, args[1]),
-        SYSCALL_TASK_INFO => sys_task_info(args[0] as *mut TaskInfo),
+        SYSCALL_TASK_INFO => sys_task_info(args[0] as *mut TaskInfoToReturn),
         SYSCALL_MMAP => sys_mmap(args[0], args[1], args[2]),
         SYSCALL_MUNMAP => sys_munmap(args[0], args[1]),
         SYSCALL_SBRK => sys_sbrk(args[0] as i32),

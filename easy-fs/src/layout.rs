@@ -391,6 +391,9 @@ impl DiskInode {
     }
     /// add the ref count of the inode by 1 
     pub fn ref_increase(&mut self) {
+        if self.ref_count == 0 {
+            self.ref_count = 1;
+        }
         self.ref_count += 1;
     }
     /// decrease the ref count of the inode by 1 

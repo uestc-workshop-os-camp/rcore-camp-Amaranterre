@@ -4,6 +4,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
+use core::mem;
+use core::ptr;
 
 bitflags! {
     /// page table entry flags
@@ -125,6 +127,24 @@ impl PageTable {
         }
         result
     }
+
+    /// If the virtual page is valid?
+    pub fn is_valid(&self, vpn: VirtPageNum) -> bool{
+        let result = self.find_pte(vpn);
+        // the page we want to map has been used, can't mmap!
+        match result {
+            Some(pte) => {
+                if !pte.is_valid() {
+                    return false;
+                }
+            }
+            None => {
+                return false;
+            }
+        }
+        true
+    }
+
     /// set the map between virtual page number and physical page number
     #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
@@ -210,14 +230,14 @@ pub fn translated_ref<T>(token: usize, ptr: *const T) -> &'static T {
         .get_ref()
 }
 /// Translate a ptr[u8] array through page table and return a mutable reference of T
-pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
-    let page_table = PageTable::from_token(token);
-    let va = ptr as usize;
-    page_table
-        .translate_va(VirtAddr::from(va))
-        .unwrap()
-        .get_mut()
-}
+// pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
+//     let page_table = PageTable::from_token(token);
+//     let va = ptr as usize;
+//     page_table
+//         .translate_va(VirtAddr::from(va))
+//         .unwrap()
+//         .get_mut()
+// }
 
 /// An abstraction over a buffer passed from user space to kernel space
 pub struct UserBuffer {
@@ -276,3 +296,20 @@ impl Iterator for UserBufferIterator {
         }
     }
 }
+/// by using this function, we can copy date to user memory
+/// without cocernig the page splitting
+pub fn copy_to_user<T>(token: usize, ptr: *mut T,  value: T) {
+    unsafe{
+        let dsts = translated_byte_buffer(token, ptr as *const T as *const u8, mem::size_of::<T>());
+        let src = core::slice::from_raw_parts(
+            &value as *const T as *const u8,
+            mem::size_of::<T>(),
+        );
+
+        let mut idx = 0;
+        for dst in dsts {
+            ptr::copy_nonoverlapping(&src[idx] as *const u8, &mut dst[0] as *mut u8, dst.len());
+            idx += dst.len();
+        }
+    }
+} 
