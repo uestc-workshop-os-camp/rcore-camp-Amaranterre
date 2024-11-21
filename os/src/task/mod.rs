@@ -38,6 +38,8 @@ pub use processor::{
 };
 pub use signal::SignalFlags;
 pub use task::{TaskControlBlock, TaskStatus};
+pub use process::{MAX_NUM_THREAD, MAX_NUM_RES};
+
 
 /// Make current task suspended and switch to the next task
 pub fn suspend_current_and_run_next() {

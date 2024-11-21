@@ -4,6 +4,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
+use core::{mem, ptr};
 
 bitflags! {
     /// page table entry flags
@@ -274,3 +275,20 @@ impl Iterator for UserBufferIterator {
         }
     }
 }
+/// by using this function, we can copy date to user memory
+/// without cocernig the page splitting
+pub fn copy_to_user<T>(token: usize, ptr: *mut T,  value: T) {
+    unsafe{
+        let dsts = translated_byte_buffer(token, ptr as *const T as *const u8, mem::size_of::<T>());
+        let src = core::slice::from_raw_parts(
+            &value as *const T as *const u8,
+            mem::size_of::<T>(),
+        );
+
+        let mut idx = 0;
+        for dst in dsts {
+            ptr::copy_nonoverlapping(&src[idx] as *const u8, &mut dst[0] as *mut u8, dst.len());
+            idx += dst.len();
+        }
+    }
+} 
