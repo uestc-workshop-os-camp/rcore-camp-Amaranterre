@@ -23,9 +23,9 @@ pub struct ProcessControlBlock {
     inner: UPSafeCell<ProcessControlBlockInner>,
 }
 /// max number of thread for one process
-pub const MAX_NUM_THREAD: usize = 10;
+pub const MAX_NUM_THREAD: usize = 50;
 /// max number of resource for one process
-pub const MAX_NUM_RES: usize = 10;
+pub const MAX_NUM_RES: usize = 5;
 
 /// Inner of Process Control Block
 pub struct ProcessControlBlockInner {
@@ -54,8 +54,8 @@ pub struct ProcessControlBlockInner {
     /// condvar list
     pub condvar_list: Vec<Option<Arc<Condvar>>>,
 
-    pub allocation: [[usize;MAX_NUM_THREAD]; MAX_NUM_RES],
-    pub needed: [[usize;MAX_NUM_THREAD]; MAX_NUM_RES],
+    pub allocation: [[usize;MAX_NUM_RES]; MAX_NUM_THREAD],
+    pub needed: [[usize;MAX_NUM_RES]; MAX_NUM_THREAD],
     pub available: [usize; MAX_NUM_RES],
     pub if_dead_detect: bool,
 
@@ -129,8 +129,8 @@ impl ProcessControlBlock {
                     mutex_list: Vec::new(),
                     semaphore_list: Vec::new(),
                     condvar_list: Vec::new(),
-                    allocation: [[0;MAX_NUM_THREAD]; MAX_NUM_RES],
-                    needed: [[0;MAX_NUM_THREAD]; MAX_NUM_RES],
+                    allocation: [[0;MAX_NUM_RES]; MAX_NUM_THREAD],
+                    needed: [[0;MAX_NUM_RES]; MAX_NUM_THREAD],
                     available: [0;MAX_NUM_RES],
                     if_dead_detect: false,
                 })
@@ -259,8 +259,8 @@ impl ProcessControlBlock {
                     mutex_list: Vec::new(),
                     semaphore_list: Vec::new(),
                     condvar_list: Vec::new(),
-                    allocation: [[0;MAX_NUM_THREAD]; MAX_NUM_RES],
-                    needed: [[0;MAX_NUM_THREAD]; MAX_NUM_RES],
+                    allocation: [[0;MAX_NUM_RES]; MAX_NUM_THREAD],
+                    needed: [[0;MAX_NUM_RES]; MAX_NUM_THREAD],
                     available: [0;MAX_NUM_RES],
                     if_dead_detect: false,
                 })

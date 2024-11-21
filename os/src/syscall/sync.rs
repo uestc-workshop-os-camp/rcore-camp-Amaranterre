@@ -22,7 +22,7 @@ pub fn sys_sleep(ms: usize) -> isize {
     0
 }
 
-fn is_res_safe(allocation: &[[usize; MAX_NUM_THREAD]; MAX_NUM_RES], available: &[usize; MAX_NUM_RES], needed: &[[usize; MAX_NUM_THREAD]; MAX_NUM_RES]) -> bool {
+fn is_res_safe(allocation: &[[usize; MAX_NUM_RES]; MAX_NUM_THREAD], available: &[usize; MAX_NUM_RES], needed: &[[usize; MAX_NUM_RES]; MAX_NUM_THREAD]) -> bool {
     let mut working = available.clone();
     let mut is_finish = [false; MAX_NUM_THREAD];
 
